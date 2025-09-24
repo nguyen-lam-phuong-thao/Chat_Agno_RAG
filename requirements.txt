@@ -1,0 +1,12 @@
+fastapi
+python-dotenv
+qdrant-client
+langchain-community
+sentence-transformers
+agno  
+uvicorn
+pandas
+sqlalchemy
+google-generativeai
+torch
+numpy
