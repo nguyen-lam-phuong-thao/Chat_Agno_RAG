@@ -1,59 +1,281 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Agno Chat</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; }
-    #chat-container { width: 500px; margin: 30px auto; background: #fff; border-radius: 10px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    #messages { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
-    .message { margin: 8px 0; padding: 8px 12px; border-radius: 15px; max-width: 80%; }
-    .user { background: #d1e7dd; align-self: flex-end; margin-left: auto; }
-    .bot { background: #e2e3e5; align-self: flex-start; margin-right: auto; }
-    #input-container { margin-top: 10px; display: flex; }
-    #input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #ddd; }
-    #send { margin-left: 5px; padding: 10px 15px; border: none; background: #0d6efd; color: white; border-radius: 5px; cursor: pointer; }
+    :root {
+      --bg: #0b1220;
+      --panel: #0f172a;
+      --panel-2: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --brand: #60a5fa;
+      --brand-2: #3b82f6;
+      --green: #34d399;
+      --red: #f87171;
+      --border: #1f2937;
+      --bubble-bot: #111827;
+      --bubble-user: #1e293b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f8fb; --panel: #ffffff; --panel-2: #f9fafb; --text: #0f172a; --muted: #6b7280;
+        --brand: #2563eb; --brand-2:#1d4ed8; --green:#059669; --red:#dc2626; --border:#e5e7eb;
+        --bubble-bot:#f3f4f6; --bubble-user:#dbeafe; --shadow: 0 10px 25px rgba(2,6,23,.08);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--text); background: radial-gradient(1200px 600px at 70% -20%, rgba(59,130,246,.25), transparent 60%), var(--bg);
+      display: grid; grid-template-rows: auto 1fr auto;
+    }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(15,23,42,.7), rgba(15,23,42,.35));
+      border-bottom: 1px solid var(--border);
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 14px 16px; }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .brand {
+      display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .3px;
+    }
+    .brand svg { width: 22px; height: 22px; }
+    .pill {
+      font-size: 12px; color: var(--muted); background: var(--panel-2);
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px;
+    }
+
+    /* Chat area */
+    main { display: grid; }
+    #chat {
+      max-width: 960px; margin: 16px auto; padding: 0 16px;
+      display: grid; grid-template-rows: 1fr auto; gap: 12px; width: 100%; height: calc(100vh - 160px);
+    }
+    #messages {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px; overflow: auto; box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .bubble { max-width: 78%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); white-space: pre-wrap; word-wrap: break-word; }
+    .user { align-self: flex-end; background: var(--bubble-user); }
+    .bot { align-self: flex-start; background: var(--bubble-bot); }
+    .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .row.gap { gap: 8px; }
+
+    .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--border); }
+    .msg { display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+
+    .typing { display: inline-block; }
+    .typing span { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite ease-in-out; }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: .2 } 40% { opacity: 1 } }
+
+    /* Composer */
+    #composer {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 10px; box-shadow: var(--shadow);
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; position: sticky; bottom: 10px;
+    }
+    textarea {
+      width: 100%; resize: none; min-height: 48px; max-height: 160px; padding: 12px 12px; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--panel-2); color: var(--text); outline: none;
+    }
+    textarea::placeholder { color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; }
+
+    button.primary {
+      display: inline-flex; align-items: center; gap: 8px; border: 1px solid transparent; cursor: pointer;
+      padding: 10px 14px; border-radius: 12px; background: linear-gradient(180deg, var(--brand), var(--brand-2)); color: white; font-weight: 600;
+      box-shadow: 0 6px 20px rgba(59,130,246,.35);
+    }
+    button.primary:disabled { opacity: .6; cursor: not-allowed; box-shadow: none; }
+
+    select, .chip {
+      background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+    }
+
+    /* References accordion */
+    details.refs { margin-top: 8px; background: transparent; }
+    details.refs summary { cursor: pointer; color: var(--muted); }
+    .ref-item { border-left: 3px solid var(--brand); padding-left: 10px; margin: 8px 0; color: var(--muted); font-size: 13px; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel); color: var(--text); border:1px solid var(--border); padding: 10px 12px; border-radius: 10px; opacity: 0; transform: translateY(8px); transition: .25s; box-shadow: var(--shadow);} 
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Small screens */
+    @media (max-width: 640px){
+      .bubble { max-width: 92%; }
+      #chat { height: calc(100vh - 180px); }
+    }
   </style>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="messages"></div>
-    <div id="input-container">
-      <input type="text" id="input" placeholder="Nhập tin nhắn..." />
-      <button id="send">Gửi</button>
+  <header>
+    <div class="container row">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3l3.5 6h-7L12 3zm0 18l-3.5-6h7L12 21z" fill="currentColor" opacity=".7"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>
+        Agno Chat
+      </div>
+      <span class="pill">Fixed DB • Qdrant RAG</span>
+      <span style="margin-left:auto" class="pill" id="status-pill">Ready</span>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <section id="chat">
+      <div id="messages"></div>
+      <div id="composer" class="container">
+        <textarea id="input" rows="1" placeholder="Nhập câu hỏi... (Shift+Enter để xuống dòng)"></textarea>
+        <div class="actions">
+          <select id="topk" title="Top-K docs">
+            <option value="3">Top‑3</option>
+            <option value="5" selected>Top‑5</option>
+            <option value="8">Top‑8</option>
+          </select>
+          <button id="send" class="primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Gửi
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
 
   <script>
-    const messagesDiv = document.getElementById("messages");
-    const input = document.getElementById("input");
-    const sendBtn = document.getElementById("send");
+    const $ = (s, d=document) => d.querySelector(s);
+    const messagesEl = $('#messages');
+    const inputEl = $('#input');
+    const sendBtn = $('#send');
+    const topkEl = $('#topk');
+    const statusPill = $('#status-pill');
+    const toastEl = $('#toast');
 
-    function addMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.textContent = text;
-      messagesDiv.appendChild(msg);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    const API_QA = '/qa';        // khớp api_qa.py
+    const API_SEARCH = '/search'; // tuỳ chọn nếu bạn đã thêm
+
+    // Auto-resize textarea
+    function autosize(el){
+      el.style.height = 'auto';
+      el.style.height = Math.min(160, el.scrollHeight) + 'px';
+    }
+    inputEl.addEventListener('input', () => autosize(inputEl));
+
+    function showToast(msg){
+      toastEl.textContent = msg; toastEl.classList.add('show');
+      setTimeout(()=>toastEl.classList.remove('show'), 2000);
     }
 
-    async function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
-      addMessage(text, "user");
-      input.value = "";
+    function bubbleHTML(text, who='bot', refs){
+      const wrap = document.createElement('div');
+      wrap.className = 'msg';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.innerHTML = who==='user' ? '🧑' : '🤖';
+      const body = document.createElement('div');
 
-      const res = await fetch("/chat_api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-      });
-      const data = await res.json();
-      addMessage(data.answer, "bot");
+      const b = document.createElement('div');
+      b.className = 'bubble ' + (who==='user'?'user':'bot');
+      b.innerText = text; // simple safe rendering; can swap to markdown later
+      body.appendChild(b);
+
+      if (refs && refs.length){
+        const det = document.createElement('details'); det.className = 'refs';
+        const sum = document.createElement('summary'); sum.textContent = `Nguồn tham khảo (${refs.length})`;
+        det.appendChild(sum);
+        refs.forEach(r => {
+          const it = document.createElement('div'); it.className='ref-item';
+          const score = (r.score!=null? ` • score ${Number(r.score).toFixed(3)}`: '');
+          const meta = r.metadata && r.metadata.disease ? ` • ${r.metadata.disease}` : '';
+          it.textContent = (r.text || '').slice(0, 220) + '…' + score + meta;
+          det.appendChild(it);
+        });
+        body.appendChild(det);
+      }
+
+      wrap.appendChild(avatar); wrap.appendChild(body);
+      return wrap;
     }
 
-    sendBtn.addEventListener("click", sendMessage);
-    input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+    function addMessage(text, who='bot', refs){
+      const el = bubbleHTML(text, who, refs);
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return el;
+    }
+
+    function addTyping(){
+      const wrap = document.createElement('div'); wrap.className='msg';
+      const avatar = document.createElement('div'); avatar.className='avatar'; avatar.innerHTML='🤖';
+      const body = document.createElement('div');
+      const b = document.createElement('div'); b.className='bubble bot';
+      const t = document.createElement('div'); t.className='typing'; t.innerHTML='<span></span><span></span><span></span>';
+      b.appendChild(t); body.appendChild(b); wrap.appendChild(avatar); wrap.appendChild(body);
+      messagesEl.appendChild(wrap); messagesEl.scrollTop = messagesEl.scrollHeight;
+      return wrap;
+    }
+
+    async function fetchRefs(query, topk){
+      try {
+        const res = await fetch(API_SEARCH, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, top_k: topk})});
+        if(!res.ok) return [];
+        const data = await res.json();
+        return data.results || [];
+      } catch { return []; }
+    }
+
+    async function sendMessage(){
+      const text = inputEl.value.trim();
+      if(!text) return; inputEl.value=''; autosize(inputEl);
+      addMessage(text, 'user');
+      sendBtn.disabled = true; statusPill.textContent = 'Thinking…';
+      const typingRow = addTyping();
+
+      const top_k = parseInt(topkEl.value, 10) || 5;
+
+      // song song gọi /qa và /search (refs)
+      try {
+        const [qaRes, refs] = await Promise.all([
+          fetch(API_QA, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ query: text, top_k }) })
+            .then(r=>r.json()),
+          fetchRefs(text, top_k)
+        ]);
+
+        typingRow.remove();
+
+        if(qaRes && qaRes.answer){
+          addMessage(qaRes.answer, 'bot', refs);
+        } else {
+          addMessage('Xin lỗi, hiện không có câu trả lời.', 'bot');
+        }
+        statusPill.textContent = 'Ready';
+      } catch (e){
+        typingRow.remove();
+        addMessage('Đã có lỗi xảy ra. Vui lòng thử lại.', 'bot');
+        statusPill.textContent = 'Error';
+        showToast('Network error');
+      } finally {
+        sendBtn.disabled = false; inputEl.focus();
+      }
+    }
+
+    // Events
+    $('#send').addEventListener('click', sendMessage);
+    inputEl.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+    });
+
+    // Greeting
+    addMessage('Xin chào! Hãy hỏi về triệu chứng hoặc phòng ngừa bệnh trong cơ sở dữ liệu.', 'bot');
   </script>
 </body>
 </html>

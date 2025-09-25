@@ -1,6 +1,10 @@
-.venv
- __pycache__
-*.pyc >> 
-.DS_Store 
-qdrant_data
+__pycache__/
+*.pyc
+.venv/
+
+# App data
+qdrant_data/
+data/
+
+# Env
 .env
